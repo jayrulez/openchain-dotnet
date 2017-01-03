@@ -1,0 +1,16 @@
+.vs/**
+.vscode/**
+.idea/**
+build/**
+src/**/.vscode/**
+src/**/bower_components/**
+src/**/bin
+src/**/obj
+src/**/Logs
+src/**/appsettings.json
+src/**/*.xproj.user
+src/**/project.lock.json
+src/**/build/**
+test/**/bin
+test/**/obj
+test/**/project.lock.json
