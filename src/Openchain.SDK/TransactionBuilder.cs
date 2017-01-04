@@ -53,7 +53,14 @@ namespace Openchain.SDK
 
         public TransactionBuilder AddAccountRecord(AccountStatus previous, Int64 delta)
         {
-            return AddRecord(previous.AccountKey.Key.ToBinary(), new ByteString(BitConverter.GetBytes(previous.Balance + delta)), previous.Version);
+            var bytes = BitConverter.GetBytes(previous.Balance + delta);
+
+            if(BitConverter.IsLittleEndian)
+            {
+                bytes = bytes.Reverse().ToArray();
+            }
+
+            return AddRecord(previous.AccountKey.Key.ToBinary(), new ByteString(bytes), previous.Version);
         }
 
         public async Task<TransactionBuilder> UpdateAccountRecord(string account, string asset, Int64 delta)
@@ -79,7 +86,7 @@ namespace Openchain.SDK
 
             var accountRecord = await _apiClient.GetAccountRecord(accountResult, asset);
 
-            return AddAccountRecord(new AccountStatus(accountRecord.AccountKey, accountRecord.Balance, accountRecord.Version), delta);
+            return AddAccountRecord(accountRecord, delta);
         }
 
         public TransactionBuilder AddSigningKey(MutationSigner key)
@@ -87,71 +94,6 @@ namespace Openchain.SDK
             _keys.Add(key);
 
             return this;
-        }
-
-        public static ParsedMutation Parse(Mutation mutation)
-        {
-            List<AccountStatus> accountMutations = new List<AccountStatus>();
-            List<KeyValuePair<RecordKey, ByteString>> dataRecords = new List<KeyValuePair<RecordKey, ByteString>>();
-
-            foreach (Record record in mutation.Records)
-            {
-                // This is used for optimistic concurrency and does not participate in the validation
-                if (record.Value == null)
-                    continue;
-
-                try
-                {
-                    RecordKey key = RecordKey.Parse(record.Key);
-                    switch (key.RecordType)
-                    {
-                        case RecordType.Account:
-                            accountMutations.Add(FromRecord(key, record));
-                            break;
-                        case RecordType.Data:
-                            dataRecords.Add(new KeyValuePair<RecordKey, ByteString>(key, record.Value));
-                            break;
-                    }
-                }
-                catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "keyData")
-                {
-                    // Deserializing and re-serializing the record gives a different result
-                    throw new TransactionInvalidException("NonCanonicalSerialization");
-                }
-                catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "path")
-                {
-                    // The path is invalid
-                    throw new TransactionInvalidException("InvalidPath");
-                }
-                catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "recordType")
-                {
-                    // The specified record type is unknown
-                    throw new TransactionInvalidException("InvalidRecord");
-                }
-                catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "record")
-                {
-                    // The value of an ACC record could not be deserialized
-                    throw new TransactionInvalidException("InvalidRecord");
-                }
-            }
-
-            return new ParsedMutation(accountMutations, dataRecords);
-        }
-
-        public static AccountStatus FromRecord(RecordKey key, Record record)
-        {
-            if (key.RecordType != RecordType.Account)
-                throw new ArgumentOutOfRangeException(nameof(key));
-
-            long amount;
-            if (record.Value.Value.Count == 0)
-                amount = 0;
-            else if (record.Value.Value.Count == 8)
-                amount = BitConverter.ToInt64(record.Value.Value.Reverse().ToArray(), 0);
-            else
-                throw new ArgumentOutOfRangeException(nameof(record));
-
-            return new AccountStatus(new AccountKey(key.Path, LedgerPath.Parse(key.Name)), amount, record.Version);
         }
 
         public ByteString Build()
@@ -162,7 +104,6 @@ namespace Openchain.SDK
             var x = mutation.Namespace;
 
             var y = _apiClient.Namespace;
-            //Parse(mutation);
 
             return new ByteString(MessageSerializer.SerializeMutation(mutation));
         }

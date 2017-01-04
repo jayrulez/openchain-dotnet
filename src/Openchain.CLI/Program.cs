@@ -97,9 +97,9 @@ namespace Openchain.CLI
 
             var walletPath = $"/p2pkh/{address}/";
 
-            assetPath = "/asset/p2pkh/Xu9bgXdY64bsWTGjLtLm6Q1N9e1W8tCwip/";
+            //assetPath = "/asset/p2pkh/Xu9bgXdY64bsWTGjLtLm6Q1N9e1W8tCwip/";
 
-            issuancePath = "/asset/p2pkh/Xu9bgXdY64bsWTGjLtLm6Q1N9e1W8tCwip/";
+            //issuancePath = "/asset/p2pkh/Xu9bgXdY64bsWTGjLtLm6Q1N9e1W8tCwip/";
 
             Console.WriteLine($"Issuance path: {issuancePath}");
             Console.WriteLine($"Wallet path: {walletPath}");

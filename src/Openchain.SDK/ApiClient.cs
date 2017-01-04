@@ -37,12 +37,12 @@ namespace Openchain.SDK
         {
             var response = await _httpClient.GetAsync("info");
 
+            var content = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Unable to get info.");
+                throw new Exception($"Unable to get info: {content}.");
             }
-
-            var content = await response.Content.ReadAsStringAsync();
 
             var info = JsonConvert.DeserializeObject<LedgerInfo>(content);
 
@@ -82,12 +82,12 @@ namespace Openchain.SDK
                 response = await _httpClient.GetAsync($"query/recordversion?key={recordKey.ToString()}&version={version.ToString()}");
             }
 
+            var content = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Unable to get record.");
+                throw new Exception($"Unable to get record: {content}.");
             }
-
-            var content = await response.Content.ReadAsStringAsync();
 
             var record = ParseRecord(JObject.Parse(content));
 
@@ -131,14 +131,16 @@ namespace Openchain.SDK
         {
             var response = await _httpClient.GetAsync($"query/account?account={Uri.EscapeUriString(account.ToString())}");
 
+            var content = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Unable to get account.");
+                throw new Exception($"Unable to get account: {content}.");
             }
 
             var records = new List<AccountStatus>();
 
-            var recordArray = JArray.Parse(await response.Content.ReadAsStringAsync());
+            var recordArray = JArray.Parse(content);
 
             foreach (var item in recordArray)
             {
@@ -158,14 +160,16 @@ namespace Openchain.SDK
         {
             var response = await _httpClient.GetAsync($"query/subaccounts?account={Uri.EscapeUriString(account.ToString())}");
 
+            var content = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Unable to get account.");
+                throw new Exception($"Unable to get account: {content}.");
             }
 
             var records = new List<Record>();
 
-            var subAccounts = JArray.Parse(await response.Content.ReadAsStringAsync());
+            var subAccounts = JArray.Parse(content);
 
             foreach (var subAccount in subAccounts)
             {
@@ -199,14 +203,14 @@ namespace Openchain.SDK
 
             var response = await _httpClient.GetAsync($"query/recordmutations?key={recordKey.ToString()}");
 
+            var content = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Unable to get record.");
+                throw new Exception($"Unable to get record: {content}.");
             }
 
             var records = new List<ByteString>();
-
-            var content = await response.Content.ReadAsStringAsync();
 
             var mutations = JArray.Parse(content);
 
@@ -241,12 +245,14 @@ namespace Openchain.SDK
 
             var response = await _httpClient.GetAsync($"query/transaction?format=raw&mutation_hash={mutationHash.ToString()}");
 
+            var content = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Unable to get transaction.");
+                throw new Exception($"Unable to get transaction: {content}.");
             }
 
-            var body = JObject.Parse(await response.Content.ReadAsStringAsync());
+            var body = JObject.Parse(content);
 
             var raw = (string)body["raw"];
 
@@ -286,7 +292,7 @@ namespace Openchain.SDK
 
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Unable to submit transaction.");
+                throw new Exception($"Unable to submit transaction: {content}.");
             }
 
             var result = JsonConvert.DeserializeObject<TransactionData>(content); ;
