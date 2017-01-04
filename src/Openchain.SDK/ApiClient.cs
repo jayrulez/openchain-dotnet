@@ -24,14 +24,13 @@ namespace Openchain.SDK
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
-        public void Initialize()
+        public async Task<ApiClient> Initialize()
         {
-            GetInfo().ContinueWith((task) =>
-            {
-                var info = task.Result;
+            var info = await GetInfo();
 
-                Namespace = new ByteString(Encoding.UTF8.GetBytes(info.Namespace));
-            }).Wait();
+            Namespace = ByteString.Parse(info.Namespace);
+
+            return this;
         }
 
         public async Task<LedgerInfo> GetInfo()
@@ -43,7 +42,9 @@ namespace Openchain.SDK
                 throw new Exception("Unable to get info.");
             }
 
-            var info = JsonConvert.DeserializeObject<LedgerInfo>(await response.Content.ReadAsStringAsync());
+            var content = await response.Content.ReadAsStringAsync();
+
+            var info = JsonConvert.DeserializeObject<LedgerInfo>(content);
 
             return info;
         }
@@ -277,14 +278,16 @@ namespace Openchain.SDK
                 { "signatures", signatures }
             };
 
-            var response = await _httpClient.PostAsync("submit", new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json"));
+            var body = JsonConvert.SerializeObject(data);
+
+            var response = await _httpClient.PostAsync("submit", new StringContent(body, Encoding.UTF8, "application/json"));
+
+            var content = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception("Unable to submit transaction.");
             }
-
-            var content = await response.Content.ReadAsStringAsync();
 
             var result = JsonConvert.DeserializeObject<TransactionData>(content); ;
 

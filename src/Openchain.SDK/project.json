@@ -6,7 +6,8 @@
     "Newtonsoft.Json": "9.0.1",
     "Openchain.Abstractions": "0.7.0",
     "Openchain.Infrastructure": "0.7.0",
-    "System.Slices": "0.1.0-e161122-4"
+    "System.Slices": "0.1.0-e161122-4",
+    "NBitcoin": "3.0.0.96"
   },
 
   "frameworks": {

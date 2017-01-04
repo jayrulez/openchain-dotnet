@@ -30,12 +30,12 @@ namespace Openchain.SDK
 
         public TransactionBuilder AddRecord(ByteString key, ByteString value, ByteString version)
         {
-            if (value != null)
+            /*if (value != null)
             {
                 var valueData = new { data = value };
 
                 value = new ByteString(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(valueData)));
-            }
+            }*/
 
             var newRecord = new Record(key, value, version);
 
@@ -44,7 +44,7 @@ namespace Openchain.SDK
             return this;
         }
 
-        public TransactionBuilder SetMetaData(ByteString data)
+        public TransactionBuilder SetMetaData(object data)
         {
             _metaData = new ByteString(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data)));
 
@@ -89,9 +89,80 @@ namespace Openchain.SDK
             return this;
         }
 
+        public static ParsedMutation Parse(Mutation mutation)
+        {
+            List<AccountStatus> accountMutations = new List<AccountStatus>();
+            List<KeyValuePair<RecordKey, ByteString>> dataRecords = new List<KeyValuePair<RecordKey, ByteString>>();
+
+            foreach (Record record in mutation.Records)
+            {
+                // This is used for optimistic concurrency and does not participate in the validation
+                if (record.Value == null)
+                    continue;
+
+                try
+                {
+                    RecordKey key = RecordKey.Parse(record.Key);
+                    switch (key.RecordType)
+                    {
+                        case RecordType.Account:
+                            accountMutations.Add(FromRecord(key, record));
+                            break;
+                        case RecordType.Data:
+                            dataRecords.Add(new KeyValuePair<RecordKey, ByteString>(key, record.Value));
+                            break;
+                    }
+                }
+                catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "keyData")
+                {
+                    // Deserializing and re-serializing the record gives a different result
+                    throw new TransactionInvalidException("NonCanonicalSerialization");
+                }
+                catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "path")
+                {
+                    // The path is invalid
+                    throw new TransactionInvalidException("InvalidPath");
+                }
+                catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "recordType")
+                {
+                    // The specified record type is unknown
+                    throw new TransactionInvalidException("InvalidRecord");
+                }
+                catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "record")
+                {
+                    // The value of an ACC record could not be deserialized
+                    throw new TransactionInvalidException("InvalidRecord");
+                }
+            }
+
+            return new ParsedMutation(accountMutations, dataRecords);
+        }
+
+        public static AccountStatus FromRecord(RecordKey key, Record record)
+        {
+            if (key.RecordType != RecordType.Account)
+                throw new ArgumentOutOfRangeException(nameof(key));
+
+            long amount;
+            if (record.Value.Value.Count == 0)
+                amount = 0;
+            else if (record.Value.Value.Count == 8)
+                amount = BitConverter.ToInt64(record.Value.Value.Reverse().ToArray(), 0);
+            else
+                throw new ArgumentOutOfRangeException(nameof(record));
+
+            return new AccountStatus(new AccountKey(key.Path, LedgerPath.Parse(key.Name)), amount, record.Version);
+        }
+
         public ByteString Build()
         {
             var mutation = new Mutation(_apiClient.Namespace, _records, _metaData);
+
+
+            var x = mutation.Namespace;
+
+            var y = _apiClient.Namespace;
+            //Parse(mutation);
 
             return new ByteString(MessageSerializer.SerializeMutation(mutation));
         }

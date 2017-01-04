@@ -1,7 +1,10 @@
-﻿using Openchain.SDK;
+﻿using NBitcoin;
+using Openchain.Infrastructure;
+using Openchain.SDK;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Openchain.CLI
@@ -10,11 +13,11 @@ namespace Openchain.CLI
     {
         public static void Main(string[] args)
         {
-            var client = new ApiClient("http://openchain-server.beta.caricoin.com");
+            //var client = new ApiClient("http://openchain-server.beta.caricoin.com");
 
-            client.Initialize();
+            //client.Initialize();
 
-            Console.WriteLine(client.Namespace.ToString());
+            /*Console.WriteLine(client.Namespace.ToString());
 
             var task = client.GetSubAccounts("/");
 
@@ -58,7 +61,70 @@ namespace Openchain.CLI
 
             dataRecordTask.Wait();
 
-            Console.WriteLine($"Data: {dataRecordTask.Result.Data}");
+            Console.WriteLine($"Data: {dataRecordTask.Result.Data}");*/
+
+            /*var key = new NBitcoin.Key();
+
+            var publicKey = key.PubKey;
+
+            Console.WriteLine(publicKey.GetAddress(Network.Main).ToString());
+            Console.WriteLine(publicKey.GetAddress(Network.TestNet).ToString());
+
+            var mutationSigner = new MutationSigner(key);
+
+            var hash = ByteString.Parse("2d80d11496540bf88cf0ebbdeba8bd718df32f9fcc71cac1d8cf519047372b86");
+
+            var signature = mutationSigner.Sign(hash);
+
+            Console.WriteLine(signature.ToString());
+
+            var ecKey = new ECKey(publicKey.ToBytes());
+
+            var isVerified = ecKey.VerifySignature(MessageSerializer.ComputeHash(hash.ToByteArray()), signature.ToByteArray());
+
+            Console.WriteLine(isVerified);
+            */
+
+            var seed = "0123456789abcdef0123456789abcdef";
+
+            var extKey = new ExtKey(Encoding.UTF8.GetBytes(seed));
+            var pKey = extKey.PrivateKey;
+            var address = pKey.PubKey.GetAddress(Network.Main).ToString();
+
+            var issuancePath = $"/asset/p2pkh/{address}/";
+
+            var assetPath = issuancePath;
+
+            var walletPath = $"/p2pkh/{address}/";
+
+            assetPath = "/asset/p2pkh/Xu9bgXdY64bsWTGjLtLm6Q1N9e1W8tCwip/";
+
+            issuancePath = "/asset/p2pkh/Xu9bgXdY64bsWTGjLtLm6Q1N9e1W8tCwip/";
+
+            Console.WriteLine($"Issuance path: {issuancePath}");
+            Console.WriteLine($"Wallet path: {walletPath}");
+
+            var tSigner = new MutationSigner(pKey);
+
+            var client = new ApiClient("http://openchain-server.beta.caricoin.com");
+            client.Initialize().Wait();
+
+            var builder = new SDK.TransactionBuilder(client)
+                .AddSigningKey(tSigner)
+                .SetMetaData(new
+                {
+                    memo = $"Issued 100 units from {assetPath}"
+                });
+
+            builder.UpdateAccountRecord(issuancePath, assetPath, -751393).Wait();
+
+            builder.UpdateAccountRecord(walletPath, assetPath, 751393).Wait();
+
+            builder.Submit().Wait();
+
+            //var x = ParsedMutation.Parse(MessageSerializer.DeserializeMutation(ByteString.Parse("0a1038656363623161353738383663626535129f010a652f61737365742f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f3a4143433a2f61737365742f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f12360a347b2264617461223a7b2256616c7565223a5b3135362c3235352c3235352c3235352c3235352c3235352c3235352c3235355d7d7d128b010a5f2f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f3a4143433a2f61737365742f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f12280a267b2264617461223a7b2256616c7565223a5b3130302c302c302c302c302c302c302c305d7d7d1a517b226d656d6f223a224973737565642031303020756e6974732066726f6d202f61737365742f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f227d")));
+
+
 
             Console.ReadLine();
         }
