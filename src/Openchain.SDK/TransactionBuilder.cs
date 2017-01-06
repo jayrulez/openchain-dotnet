@@ -100,11 +100,6 @@ namespace Openchain.SDK
         {
             var mutation = new Mutation(_apiClient.Namespace, _records, _metaData);
 
-
-            var x = mutation.Namespace;
-
-            var y = _apiClient.Namespace;
-
             return new ByteString(MessageSerializer.SerializeMutation(mutation));
         }
 

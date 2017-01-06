@@ -1,4 +1,5 @@
 ﻿using NBitcoin;
+using Newtonsoft.Json;
 using Openchain.Infrastructure;
 using Openchain.SDK;
 using System;
@@ -9,6 +10,39 @@ using System.Threading.Tasks;
 
 namespace Openchain.CLI
 {
+    public class Subject
+    {
+
+        [JsonProperty("addresses")]
+        public IList<string> Addresses { get; set; }
+
+        [JsonProperty("required")]
+        public int Required { get; set; }
+    }
+
+    public class Permissions
+    {
+
+        [JsonProperty("account_modify")]
+        public string AccountModify { get; set; }
+
+        [JsonProperty("account_create")]
+        public string AccountCreate { get; set; }
+
+        [JsonProperty("account_spend")]
+        public string AccountSpend { get; set; }
+    }
+
+    public class AclRecord
+    {
+
+        [JsonProperty("subjects")]
+        public IList<Subject> Subjects { get; set; }
+
+        [JsonProperty("permissions")]
+        public Permissions Permissions { get; set; }
+    }
+
     public class Program
     {
         public static void Main(string[] args)
@@ -85,46 +119,51 @@ namespace Openchain.CLI
             Console.WriteLine(isVerified);
             */
 
-            var seed = "0123456789abcdef0123456789abcdef";
+            var seed = "protect morning submit wrap wrestle warfare amateur disease sun right broccoli curtain";
 
             var extKey = new ExtKey(Encoding.UTF8.GetBytes(seed));
-            var pKey = extKey.PrivateKey;
-            var address = pKey.PubKey.GetAddress(Network.Main).ToString();
 
-            var issuancePath = $"/asset/p2pkh/{address}/";
+            var wallet = new Wallet(extKey);
 
-            var assetPath = issuancePath;
+            Console.WriteLine($"Root Account: {wallet.RootAccount}");
 
-            var walletPath = $"/p2pkh/{address}/";
+            for (uint i = 0; i < 20; i++)
+            {
+                Console.WriteLine($"Asset {i}: {wallet.GetAssetPath(i)}");
+            }
 
-            //assetPath = "/asset/p2pkh/Xu9bgXdY64bsWTGjLtLm6Q1N9e1W8tCwip/";
 
-            //issuancePath = "/asset/p2pkh/Xu9bgXdY64bsWTGjLtLm6Q1N9e1W8tCwip/";
-
-            Console.WriteLine($"Issuance path: {issuancePath}");
-            Console.WriteLine($"Wallet path: {walletPath}");
-
-            var tSigner = new MutationSigner(pKey);
-
-            var client = new ApiClient("http://openchain-server.beta.caricoin.com");
+            var client = new ApiClient("http://localhost:5000");
             client.Initialize().Wait();
 
-            var builder = new SDK.TransactionBuilder(client)
-                .AddSigningKey(tSigner)
-                .SetMetaData(new
-                {
-                    memo = $"Issued 100 units from {assetPath}"
-                });
+            var dataRecordTask = client.GetDataRecord(wallet.GetAssetPath(1), "asdef");
 
-            builder.UpdateAccountRecord(issuancePath, assetPath, -751393).Wait();
+            dataRecordTask.Wait();
 
-            builder.UpdateAccountRecord(walletPath, assetPath, 751393).Wait();
+            var dataRecord = dataRecordTask.Result;
 
-            builder.Submit().Wait();
+            var assetDefinition = new
+            {
+                name = "Jamaican Dollar",
+                name_short = "JMD",
+                icon_url = ""
+            };
 
-            //var x = ParsedMutation.Parse(MessageSerializer.DeserializeMutation(ByteString.Parse("0a1038656363623161353738383663626535129f010a652f61737365742f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f3a4143433a2f61737365742f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f12360a347b2264617461223a7b2256616c7565223a5b3135362c3235352c3235352c3235352c3235352c3235352c3235352c3235355d7d7d128b010a5f2f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f3a4143433a2f61737365742f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f12280a267b2264617461223a7b2256616c7565223a5b3130302c302c302c302c302c302c302c305d7d7d1a517b226d656d6f223a224973737565642031303020756e6974732066726f6d202f61737365742f7032706b682f3132776a6d6e46747039716d516a3166784b676e5a3172684c3264634c62764865732f227d")));
+            var builder = new SDK.TransactionBuilder(client);
 
+            builder.AddRecord(dataRecord.Key, new ByteString(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(assetDefinition))), dataRecord.Version);
 
+            builder.AddSigningKey(new MutationSigner(wallet.GetAssetKey(1)));
+
+            var submitTask = builder.Submit();
+            
+            submitTask.Wait();
+
+            var mutation = builder.Build();
+
+            var eckey = new Openchain.Infrastructure.ECKey(wallet.GetAssetKey(1).PrivateKey.PubKey.ToBytes());
+
+            Console.WriteLine(eckey.VerifySignature(MessageSerializer.ComputeHash(mutation.ToByteArray()), new MutationSigner(wallet.GetAssetKey(1)).Sign(mutation).ToByteArray()));
 
             Console.ReadLine();
         }

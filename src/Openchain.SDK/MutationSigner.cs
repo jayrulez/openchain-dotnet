@@ -11,15 +11,14 @@ namespace Openchain.SDK
     public class MutationSigner
     {
         public ByteString PublicKey { get; }
+        
+        private readonly ExtKey _key;
 
-        private readonly ECDsaSigner _signer;
-        private readonly Key _key;
-
-        public MutationSigner(Key key)
+        public MutationSigner(ExtKey key)
         {
             _key = key;
 
-            PublicKey = new ByteString(_key.PubKey.ToBytes());
+            PublicKey = new ByteString(_key.PrivateKey.PubKey.ToBytes());
         }
 
         public ByteString Sign(ByteString mutation)
@@ -27,10 +26,10 @@ namespace Openchain.SDK
             var transactionBuffer = new ByteString(mutation.ToByteArray());
             
             var hash = MessageSerializer.ComputeHash(transactionBuffer.ToByteArray());
-            
-            var signature = _key.Sign(new NBitcoin.uint256(hash));
-            
-            var signatureBuffer = new ByteString(signature.ToDER());
+
+            var signature = _key.PrivateKey.Sign(new uint256(hash), SigHash.All).ToBytes();
+
+            var signatureBuffer = new ByteString(signature);
             
             return signatureBuffer;
         }
