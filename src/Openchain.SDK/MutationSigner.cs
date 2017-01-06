@@ -18,16 +18,18 @@ namespace Openchain.SDK
         {
             _key = key;
 
-            PublicKey = new ByteString(_key.PrivateKey.PubKey.ToBytes());
+            PublicKey = ByteString.Parse(_key.Neuter().PubKey.ToHex());
         }
 
         public ByteString Sign(ByteString mutation)
         {
-            var transactionBuffer = new ByteString(mutation.ToByteArray());
+            //var transactionBuffer = new ByteString(mutation.ToByteArray());
             
-            var hash = MessageSerializer.ComputeHash(transactionBuffer.ToByteArray());
+            var hash = MessageSerializer.ComputeHash(mutation.ToByteArray());
 
-            var signature = _key.PrivateKey.Sign(new uint256(hash), SigHash.All).ToBytes();
+            var hashBuffer = new uint256(hash);
+
+            var signature = _key.PrivateKey.Sign(hashBuffer).ToDER();
 
             var signatureBuffer = new ByteString(signature);
             

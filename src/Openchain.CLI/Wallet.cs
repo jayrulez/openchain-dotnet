@@ -8,18 +8,23 @@ namespace Openchain.CLI
 {
     public class Wallet
     {
-        public ExtKey Key { get; private set; }
-        public ExtKey DerivedKey { get; private set; }
+        public ExtKey RootKey { get; private set; }
+        public ExtKey AccountKey { get; private set; }
         public string RootAccount { get; private set; }
+
+        public Network Network { get; private set; }
 
         public bool Initialized { get; private set; }
 
-        public Wallet(ExtKey key)
+        public Wallet(string passphrase, Network network)
         {
-            Key = key;
-            DerivedKey = Key.Derive(44, true).Derive(64, true).Derive(0, true).Derive(0).Derive(0);
+            Network = network;
+            var mnemonic = new Mnemonic(passphrase);
+            AccountKey = mnemonic.DeriveExtKey();
 
-            var address = DerivedKey.PrivateKey.PubKey.GetAddress(Network.Main).ToString();
+            RootKey = AccountKey.Derive(44, true).Derive(64, true).Derive(0, true).Derive(0).Derive(0);
+
+            var address = RootKey.PrivateKey.PubKey.GetAddress(Network);
 
             RootAccount = $"/p2pkh/{address}/";
 
@@ -28,14 +33,14 @@ namespace Openchain.CLI
 
         public ExtKey GetAssetKey(uint index)
         {
-            return Key.Derive(44, true).Derive(64, true).Derive(1, true).Derive(0).Derive(index);
+            return AccountKey.Derive(44, true).Derive(64, true).Derive(1, true).Derive(0).Derive(index);
         }
 
         public string GetAssetPath(uint index)
         {
             var assetKey = GetAssetKey(index);
 
-            return $"/asset/{assetKey.PrivateKey.PubKey.GetAddress(Network.Main).ToString()}/";
+            return $"/asset/p2pkh/{assetKey.PrivateKey.PubKey.GetAddress(Network)}/";
         }
     }
 }

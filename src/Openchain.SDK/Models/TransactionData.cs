@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Openchain.SDK
+namespace Openchain.SDK.Models
 {
     public class TransactionData
     {
@@ -15,9 +15,9 @@ namespace Openchain.SDK
         public Mutation Mutation { get; set; }
 
         [JsonProperty("transaction_hash")]
-        public ByteString TransactionHash { get; set; }
+        public string TransactionHash { get; set; }
 
         [JsonProperty("mutation_hash")]
-        public ByteString MutationHash { get; set; }
+        public string MutationHash { get; set; }
     }
 }

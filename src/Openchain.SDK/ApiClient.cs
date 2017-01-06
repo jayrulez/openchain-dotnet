@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Openchain.Infrastructure;
+using Openchain.SDK.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -269,8 +270,8 @@ namespace Openchain.SDK
             {
                 Transaction = transaction,
                 Mutation = mutation,
-                MutationHash = transaction.Mutation,
-                TransactionHash = new ByteString(transactionHash)
+                MutationHash = transaction.Mutation.ToString(),
+                TransactionHash = new ByteString(transactionHash).ToString()
             };
 
             return data;

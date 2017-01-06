@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Openchain.Infrastructure;
+using Openchain.SDK.Models;
 
 namespace Openchain.SDK
 {
@@ -113,8 +114,8 @@ namespace Openchain.SDK
             {
                 signatures.Add(new SigningKey
                 {
-                    Signature = key.Sign(mutation).ToString(),
-                    PublicKey = key.PublicKey.ToString()
+                    PublicKey = key.PublicKey.ToString(),
+                    Signature = key.Sign(mutation).ToString()
                 });
             });
 
